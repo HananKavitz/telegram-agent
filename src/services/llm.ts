@@ -169,6 +169,29 @@ function isRetryableError(error: Error): boolean {
   return false;
 }
 
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxRetries = 3,
+  baseDelay = 2000
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const err = error instanceof Error ? error : new Error(String(error));
+      if (!isRetryableError(err)) throw err;
+      const delay = baseDelay * Math.pow(2, attempt);
+      addLog("warn", `${label}: attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${delay}ms`, {
+        error: err.message,
+      });
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 export async function chatComplete(
   model: string,
   messages: ChatMessage[],
@@ -177,33 +200,37 @@ export async function chatComplete(
   const triedModels: string[] = [model];
   let lastError: Error | null = null;
 
-  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+  try {
+    const result = await retryWithBackoff(
+      () => tryChatComplete(model, messages, tools),
+      `Primary model ${model}`,
+      3, 2000
+    );
+    return result.choice;
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error(String(error));
+    addLog("warn", `Primary model ${model} exhausted, trying fallbacks...`, {
+      error: lastError.message,
+    });
+  }
 
-  const allModels = [model, ...FALLBACK_MODELS];
-
-  for (let i = 0; i < allModels.length; i++) {
-    const m = allModels[i];
-    if (triedModels.includes(m)) continue;
-    triedModels.push(m);
-
-    const delay = Math.min(1000 * Math.pow(2, i), 15000);
-    if (i > 0) {
-      addLog("warn", `Waiting ${delay}ms before retry #${i} with ${m}...`);
-      await sleep(delay);
-    }
+  for (const fallbackModel of FALLBACK_MODELS) {
+    if (triedModels.includes(fallbackModel)) continue;
+    triedModels.push(fallbackModel);
 
     try {
-      const result = await tryChatComplete(m, messages, tools);
-      if (i > 0) {
-        addLog("info", `Fallback succeeded with ${m}`);
-      }
+      const result = await retryWithBackoff(
+        () => tryChatComplete(fallbackModel, messages, tools),
+        `Fallback ${fallbackModel}`,
+        2, 3000
+      );
+      addLog("info", `Fallback succeeded with ${fallbackModel}`);
       return result.choice;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      if (!isRetryableError(lastError)) {
-        throw lastError;
-      }
-      addLog("warn", `Attempt ${i + 1}/${allModels.length} (${m}) failed: ${lastError.message}`);
+      addLog("warn", `Fallback ${fallbackModel} exhausted`, {
+        error: lastError.message,
+      });
     }
   }
 
