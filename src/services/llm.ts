@@ -177,37 +177,33 @@ export async function chatComplete(
   const triedModels: string[] = [model];
   let lastError: Error | null = null;
 
-  try {
-    const result = await tryChatComplete(model, messages, tools);
-    return result.choice;
-  } catch (error) {
-    lastError = error instanceof Error ? error : new Error(String(error));
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    if (!isRetryableError(lastError)) {
-      throw lastError;
+  const allModels = [model, ...FALLBACK_MODELS];
+
+  for (let i = 0; i < allModels.length; i++) {
+    const m = allModels[i];
+    if (triedModels.includes(m)) continue;
+    triedModels.push(m);
+
+    const delay = Math.min(1000 * Math.pow(2, i), 15000);
+    if (i > 0) {
+      addLog("warn", `Waiting ${delay}ms before retry #${i} with ${m}...`);
+      await sleep(delay);
     }
 
-    addLog("warn", `Retryable on ${model}, trying fallbacks...`, {
-      error: lastError.message,
-    });
-  }
-
-  for (const fallbackModel of FALLBACK_MODELS) {
-    if (triedModels.includes(fallbackModel)) continue;
-    triedModels.push(fallbackModel);
-
     try {
-      const result = await tryChatComplete(fallbackModel, messages, tools);
-      addLog("info", `Fallback succeeded with ${fallbackModel}`);
+      const result = await tryChatComplete(m, messages, tools);
+      if (i > 0) {
+        addLog("info", `Fallback succeeded with ${m}`);
+      }
       return result.choice;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (!isRetryableError(lastError)) {
         throw lastError;
       }
-      addLog("warn", `Fallback ${fallbackModel} also failed, skipping`, {
-        error: lastError.message,
-      });
+      addLog("warn", `Attempt ${i + 1}/${allModels.length} (${m}) failed: ${lastError.message}`);
     }
   }
 
