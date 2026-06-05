@@ -29,12 +29,14 @@ export async function handleChat(ctx: Context) {
       {
         role: "system",
         content:
-          "You are a helpful AI assistant. You have access to tools:\n" +
+          "You are a helpful AI assistant. You MUST use the available tools to answer the user's request.\n" +
           "- generate_image: Create images from text descriptions using FLUX\n" +
           "- web_search: Search the web for current information\n" +
-          "When the user asks you to create an image or search the web, use the appropriate tool. " +
-          "After using a tool, ALWAYS summarize the results for the user. " +
-          "Do not call tools more than once per query — if you already have the answer, just respond directly.",
+          "RULES:\n" +
+          "1. If the user asks about current events, recent news, or any factual information after 2024, you MUST use web_search. Do NOT rely on your training data.\n" +
+          "2. If the user asks to create or generate an image, you MUST use generate_image.\n" +
+          "3. After using a tool, summarize the results for the user.\n" +
+          "4. ALWAYS use the tool when applicable — do not answer from memory if a tool can provide better results.",
       },
       ...(history as ChatMessage[]),
       { role: "user", content: text },

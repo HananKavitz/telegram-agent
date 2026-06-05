@@ -64,6 +64,7 @@ async function tryChatComplete(
     model,
     messages,
     tools,
+    tool_choice: "auto",
   };
 
   addLog("info", `LLM request: ${model}`, {
