@@ -20,7 +20,9 @@ export async function webSearch(query: string): Promise<string> {
 
   let response: Response;
   try {
-    response = await fetch(url.toString());
+    response = await fetch(url.toString(), {
+      headers: { "User-Agent": "TelegramBot/1.0" },
+    });
   } catch (fetchError) {
     const msg = fetchError instanceof Error ? fetchError.message : "Network error";
     addLog("error", `Search network error`, { error: msg });
