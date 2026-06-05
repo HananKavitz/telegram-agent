@@ -2,7 +2,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci
 
 COPY src/ ./src/
@@ -14,7 +14,7 @@ WORKDIR /app
 
 RUN apk add --no-cache dumb-init
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
