@@ -30,9 +30,9 @@ export const AVAILABLE_MODELS = [
 ] as const;
 
 export const FLUX_MODELS = {
-  "flux-1.1-pro": "black-forest-labs/flux-1.1-pro",
-  "flux-1-dev": "black-forest-labs/flux-1-dev",
-  "flux-1-schnell": "black-forest-labs/flux-1-schnell",
+  "flux.2-pro": "black-forest-labs/flux.2-pro",
+  "flux.2-flex": "black-forest-labs/flux.2-flex",
+  "flux.2-klein-4b": "black-forest-labs/flux.2-klein-4b",
 } as const;
 
 export const MAX_CONTEXT_PAIRS = 10;

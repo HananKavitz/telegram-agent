@@ -3,7 +3,7 @@ import { addLog } from "./debug.js";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-export async function generateImage(prompt: string, modelKey: keyof typeof FLUX_MODELS = "flux-1-schnell"): Promise<Buffer> {
+export async function generateImage(prompt: string, modelKey: keyof typeof FLUX_MODELS = "flux.2-klein-4b"): Promise<Buffer> {
   const model = FLUX_MODELS[modelKey];
 
   addLog("info", `Image gen request`, { model, prompt: prompt.slice(0, 100) });
@@ -21,6 +21,7 @@ export async function generateImage(prompt: string, modelKey: keyof typeof FLUX_
       body: JSON.stringify({
         model,
         messages: [{ role: "user", content: prompt }],
+        modalities: ["image"],
       }),
     });
   } catch (fetchError) {
@@ -35,7 +36,10 @@ export async function generateImage(prompt: string, modelKey: keyof typeof FLUX_
     throw new Error(`Image generation failed (HTTP ${response.status}): ${response.statusText}`);
   }
 
-  let data: { choices?: { message: { content: string } }[]; error?: { message: string } };
+  let data: {
+    choices?: { message: { content?: string; images?: { image_url: { url: string } }[] } }[];
+    error?: { message: string };
+  };
   try {
     data = await response.json();
   } catch {
@@ -48,15 +52,19 @@ export async function generateImage(prompt: string, modelKey: keyof typeof FLUX_
     throw new Error(`Image generation error: ${data.error.message}`);
   }
 
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) {
-    addLog("error", `Image gen no content`, { data: JSON.stringify(data).slice(0, 300) });
-    throw new Error("No image URL in response");
+  const images = data.choices?.[0]?.message?.images;
+  if (!images || images.length === 0) {
+    addLog("error", `Image gen no images in response`, { data: JSON.stringify(data).slice(0, 300) });
+    throw new Error("No images in response");
   }
 
-  const urlMatch = content.match(/https?:\/\/[^\s)\]]+/);
-  const imageUrl = urlMatch?.[0] || content.trim();
-  addLog("info", `Image gen got URL`, { url: imageUrl.slice(0, 100) });
+  const imageUrl = images[0].image_url.url;
+  addLog("info", `Image gen got result`, { url: imageUrl.slice(0, 60) + (imageUrl.length > 60 ? "..." : "") });
+
+  if (imageUrl.startsWith("data:")) {
+    const base64Data = imageUrl.split(",")[1];
+    return Buffer.from(base64Data, "base64");
+  }
 
   const imgResponse = await fetch(imageUrl);
   if (!imgResponse.ok) {

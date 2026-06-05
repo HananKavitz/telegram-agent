@@ -40,12 +40,12 @@ export async function initDatabase(): Promise<void> {
     CREATE TABLE IF NOT EXISTS user_settings (
       user_id INTEGER PRIMARY KEY,
       selected_model TEXT NOT NULL DEFAULT '${config.defaultModel}',
-      image_model TEXT NOT NULL DEFAULT 'flux-1-schnell'
+image_model TEXT NOT NULL DEFAULT 'flux.2-klein-4b'
     )
   `);
 
   try {
-    db.run(`ALTER TABLE user_settings ADD COLUMN image_model TEXT NOT NULL DEFAULT 'flux-1-schnell'`);
+    db.run(`ALTER TABLE user_settings ADD COLUMN image_model TEXT NOT NULL DEFAULT 'flux.2-klein-4b'`);
   } catch {
     // column already exists
   }
@@ -120,7 +120,7 @@ export function getSelectedImageModel(userId: number): string {
   );
   stmt.bind([userId]);
 
-  let model = "flux-1-schnell";
+  let model = "flux.2-klein-4b";
   if (stmt.step()) {
     const row = stmt.getAsObject() as { image_model: string };
     model = row.image_model;
