@@ -6,9 +6,11 @@ import {
   getMessages,
   addMessage,
   getSelectedModel,
+  getSelectedImageModel,
 } from "../services/storage.js";
 import { TOOLS } from "../tools.js";
 import type { ChatMessage, ToolCall } from "../types.js";
+import type { FLUX_MODELS } from "../config.js";
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -75,12 +77,14 @@ export async function handleChat(ctx: Context) {
       };
       messages.push(assistantMsg);
 
+      const imgModelKey = getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
+
       for (const toolCall of toolCalls) {
         const args = JSON.parse(toolCall.function.arguments);
 
         if (toolCall.function.name === "generate_image") {
           try {
-            const imageBuffer = await generateImage(args.prompt);
+            const imageBuffer = await generateImage(args.prompt, imgModelKey);
             await ctx.replyWithPhoto({ source: imageBuffer });
             addMessage(userId, "assistant", `[Generated image: ${args.prompt}]`);
             messages.push({

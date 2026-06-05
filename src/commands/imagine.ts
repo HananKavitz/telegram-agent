@@ -1,5 +1,7 @@
 import type { Context } from "telegraf";
 import { generateImage } from "../services/image.js";
+import { getSelectedImageModel } from "../services/storage.js";
+import type { FLUX_MODELS } from "../config.js";
 
 export async function imagineCommand(ctx: Context) {
   const userId = ctx.from?.id;
@@ -15,10 +17,11 @@ export async function imagineCommand(ctx: Context) {
     return;
   }
 
+  const modelKey = getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
   const statusMsg = await ctx.reply(`🎨 Generating image: "${prompt}"...`);
 
   try {
-    const imageBuffer = await generateImage(prompt);
+    const imageBuffer = await generateImage(prompt, modelKey);
     await ctx.deleteMessage(statusMsg.message_id);
     await ctx.replyWithPhoto({ source: imageBuffer });
   } catch (error) {

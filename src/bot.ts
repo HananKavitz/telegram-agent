@@ -7,6 +7,7 @@ import { clearCommand } from "./commands/clear.js";
 import { imagineCommand } from "./commands/imagine.js";
 import { searchCommand } from "./commands/search.js";
 import { debugCommand } from "./commands/debug.js";
+import { imageModelCommand, handleImageModelSelection } from "./commands/imagemodel.js";
 import { handleChat } from "./commands/chat.js";
 
 const bot = new Telegraf(config.telegramBotToken);
@@ -16,6 +17,9 @@ bot.help(helpCommand);
 
 bot.command("model", modelCommand);
 bot.action(/^model:/, handleModelSelection);
+
+bot.command("imagemodel", imageModelCommand);
+bot.action(/^imagemodel:/, handleImageModelSelection);
 
 bot.command("clear", clearCommand);
 bot.command("imagine", imagineCommand);
