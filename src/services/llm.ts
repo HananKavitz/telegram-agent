@@ -63,9 +63,11 @@ async function tryChatComplete(
   const body: Record<string, unknown> = {
     model,
     messages,
-    tools,
-    tool_choice: "auto",
   };
+  if (tools) {
+    body.tools = tools;
+    body.tool_choice = "auto";
+  }
 
   addLog("info", `LLM request: ${model}`, {
     msgCount: messages.length,
