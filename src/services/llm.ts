@@ -34,8 +34,9 @@ interface OpenRouterResponse {
 
 interface ChatMessage {
   role: "user" | "assistant" | "system" | "tool";
-  content: string;
+  content?: string | null;
   tool_call_id?: string;
+  tool_calls?: ToolCall[];
 }
 
 interface ToolDefinition {
