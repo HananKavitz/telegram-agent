@@ -38,8 +38,9 @@ export async function handleChat(ctx: Context) {
           "RULES:\n" +
           "1. If the user asks about current events, recent news, or any factual information, you MUST use web_search. Do NOT rely on your training data.\n" +
           "2. If the user asks to create or generate an image, you MUST use generate_image.\n" +
-          "3. After using a tool, summarize the results for the user.\n" +
-          "4. ALWAYS use the tool when applicable — do not answer from memory if a tool can provide better results.",
+          "3. After using a tool, summarize the results for the user conversationally.\n" +
+          "4. ALWAYS use the tool when applicable — do not answer from memory if a tool can provide better results.\n" +
+          "5. Do NOT output raw JSON, function call details, or chain-of-thought reasoning in your responses.",
       },
       ...(history as ChatMessage[]),
       { role: "user", content: text },
