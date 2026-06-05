@@ -44,10 +44,10 @@ export async function initDatabase(): Promise<void> {
     )
   `);
 
-  const hasImageCol = db.exec(`PRAGMA table_info(user_settings)`)
-    .some(row => row.values.some(v => String(v) === "image_model"));
-  if (!hasImageCol) {
+  try {
     db.run(`ALTER TABLE user_settings ADD COLUMN image_model TEXT NOT NULL DEFAULT 'flux-1-schnell'`);
+  } catch {
+    // column already exists
   }
 
   saveDatabase();
