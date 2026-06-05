@@ -49,9 +49,9 @@ interface ToolDefinition {
 }
 
 const FALLBACK_MODELS = [
+  "openrouter/free",
   "google/gemma-4-31b-it:free",
   "qwen/qwen3-coder:free",
-  "openrouter/free",
   "meta-llama/llama-3.3-70b-instruct:free",
 ];
 

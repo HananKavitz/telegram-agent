@@ -16,7 +16,7 @@ export const config = {
   openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
   serpapiApiKey: requireEnv("SERPAPI_API_KEY"),
   databasePath: process.env.DATABASE_PATH || "./data/bot.db",
-  defaultModel: process.env.DEFAULT_MODEL || "google/gemini-2.0-flash-001",
+  defaultModel: process.env.DEFAULT_MODEL || "openrouter/free",
 } as const;
 
 export const AVAILABLE_MODELS = [
