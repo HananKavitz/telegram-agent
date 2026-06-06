@@ -35,4 +35,26 @@ export const TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "research",
+      description: "Perform deep, multi-source online research on a complex topic. Produces a comprehensive, well-cited report with executive summary, key findings, detailed analysis, and sources. Use this for complex questions that require synthesizing information from multiple sources.",
+      parameters: {
+        type: "object",
+        properties: {
+          subject: {
+            type: "string",
+            description: "The topic or question to research deeply",
+          },
+          depth: {
+            type: "string",
+            enum: ["standard", "deep"],
+            description: "Research depth. 'deep' performs more searches and fetches more pages for maximum quality.",
+          },
+        },
+        required: ["subject"],
+      },
+    },
+  },
 ];

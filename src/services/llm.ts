@@ -12,7 +12,7 @@ interface ToolCall {
   };
 }
 
-interface OpenRouterChoice {
+export interface OpenRouterChoice {
   finish_reason: string;
   message: {
     role: "assistant";

@@ -2,6 +2,7 @@ import type { Context } from "telegraf";
 import { chatComplete } from "../services/llm.js";
 import { generateImage } from "../services/image.js";
 import { webSearch } from "../services/search.js";
+import { research } from "../services/research.js";
 import {
   getMessages,
   addMessage,
@@ -13,6 +14,7 @@ import type { ChatMessage, ToolCall } from "../types.js";
 import type { FLUX_MODELS } from "../config.js";
 
 const MAX_TOOL_ROUNDS = 3;
+const TYPING_INTERVAL_MS = 4000;
 
 export async function handleChat(ctx: Context) {
   const userId = ctx.from?.id;
@@ -36,6 +38,7 @@ export async function handleChat(ctx: Context) {
           "TOOLS:\n" +
           "- generate_image: Create images from text descriptions using FLUX\n" +
           "- web_search: Search the web for current information\n" +
+          "- research: Perform deep, multi-source research on complex topics. Use this when the user needs comprehensive, well-cited analysis.\n" +
           "RULES:\n" +
           "1. Always use the available tools when applicable — do not answer from memory if a tool can provide better results. Use web_search for current events, recent news, or facts. Use generate_image when the user asks to create or generate an image.\n" +
           "2. If a request needs multiple tools, use them sequentially. For example, search first, then use the results to generate an image.\n" +
@@ -105,6 +108,37 @@ export async function handleChat(ctx: Context) {
               content: `Image generation failed: ${errMsg}`,
               tool_call_id: toolCall.id,
             });
+          }
+        } else if (toolCall.function.name === "research") {
+          const chatId = ctx.chat?.id;
+          const typingInterval = setInterval(() => {
+            if (chatId) {
+              ctx.telegram.sendChatAction(chatId, "typing").catch(() => {});
+            }
+          }, TYPING_INTERVAL_MS);
+
+          try {
+            const report = await research(args.subject, model, args.depth || "standard");
+            const maxLen = 6000;
+            const truncated =
+              report.length > maxLen
+                ? report.slice(0, maxLen) + "\n\n... (report truncated)"
+                : report;
+
+            messages.push({
+              role: "tool",
+              content: truncated,
+              tool_call_id: toolCall.id,
+            });
+          } catch (error) {
+            const errMsg = error instanceof Error ? error.message : "Unknown error";
+            messages.push({
+              role: "tool",
+              content: `Research failed: ${errMsg}`,
+              tool_call_id: toolCall.id,
+            });
+          } finally {
+            clearInterval(typingInterval);
           }
         } else if (toolCall.function.name === "web_search") {
           try {

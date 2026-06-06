@@ -10,13 +10,13 @@ interface SerpResult {
   position: number;
 }
 
-export async function webSearch(query: string): Promise<string> {
-  addLog("info", `Web search`, { query: query.slice(0, 100) });
+export async function webSearch(query: string, num: number = 5): Promise<string> {
+  addLog("info", `Web search`, { query: query.slice(0, 100), num });
 
   const url = new URL(SERPAPI_URL);
   url.searchParams.set("q", query);
   url.searchParams.set("api_key", config.serpapiApiKey);
-  url.searchParams.set("num", "5");
+  url.searchParams.set("num", String(num));
 
   let response: Response;
   try {

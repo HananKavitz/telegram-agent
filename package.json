@@ -9,6 +9,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "dotenv": "^16.4.7",
     "sql.js": "^1.11.0",
     "telegraf": "^4.16.3"
