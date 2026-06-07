@@ -55,6 +55,18 @@ const FALLBACK_MODELS = [
   "meta-llama/llama-3.3-70b-instruct:free",
 ];
 
+const blockedModels = new Set<string>();
+const BLOCK_DURATION_MS = 10 * 60 * 1000;
+
+function isModelBlocked(model: string): boolean {
+  return blockedModels.has(model);
+}
+
+function blockModel(model: string): void {
+  blockedModels.add(model);
+  setTimeout(() => blockedModels.delete(model), BLOCK_DURATION_MS);
+}
+
 async function tryChatComplete(
   model: string,
   messages: ChatMessage[],
@@ -197,21 +209,30 @@ export async function chatComplete(
   messages: ChatMessage[],
   tools?: ToolDefinition[]
 ): Promise<OpenRouterChoice> {
-  const triedModels: string[] = [model];
+  const triedModels: string[] = [];
   let lastError: Error | null = null;
 
-  try {
-    const result = await retryWithBackoff(
-      () => tryChatComplete(model, messages, tools),
-      `Primary model ${model}`,
-      3, 2000
-    );
-    return result.choice;
-  } catch (error) {
-    lastError = error instanceof Error ? error : new Error(String(error));
-    addLog("warn", `Primary model ${model} exhausted, trying fallbacks...`, {
-      error: lastError.message,
-    });
+  if (isModelBlocked(model)) {
+    addLog("info", `Skipping blocked model ${model}, going directly to fallbacks`);
+  } else {
+    triedModels.push(model);
+
+    try {
+      const result = await retryWithBackoff(
+        () => tryChatComplete(model, messages, tools),
+        `Primary model ${model}`,
+        3, 2000
+      );
+      return result.choice;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (lastError.message.includes("429") || (lastError as any).statusCode === 429) {
+        blockModel(model);
+      }
+      addLog("warn", `Primary model ${model} exhausted, trying fallbacks...`, {
+        error: lastError.message,
+      });
+    }
   }
 
   for (const fallbackModel of FALLBACK_MODELS) {
