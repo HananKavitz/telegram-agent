@@ -15,6 +15,7 @@ import type { FLUX_MODELS } from "../config.js";
 
 const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
+const RESEARCH_TIMEOUT_MS = 80000;
 
 export async function handleChat(ctx: Context) {
   const userId = ctx.from?.id;
@@ -118,7 +119,7 @@ export async function handleChat(ctx: Context) {
           }, TYPING_INTERVAL_MS);
 
           try {
-            const report = await research(args.subject, model, args.depth || "standard");
+            const report = await research(args.subject, model, args.depth || "standard", RESEARCH_TIMEOUT_MS);
             const maxLen = 6000;
             const truncated =
               report.length > maxLen

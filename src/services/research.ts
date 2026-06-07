@@ -20,7 +20,7 @@ async function expandQueries(
   model: string,
   depth: "standard" | "deep"
 ): Promise<string[]> {
-  const count = depth === "deep" ? 5 : 3;
+  const count = depth === "deep" ? 4 : 3;
 
   const messages: ChatMessage[] = [
     {
@@ -115,9 +115,12 @@ Guidelines:
 export async function research(
   subject: string,
   model: string,
-  depth: "standard" | "deep" = "standard"
+  depth: "standard" | "deep" = "standard",
+  timeoutMs?: number
 ): Promise<string> {
-  addLog("info", "Starting research", { subject, depth });
+  addLog("info", "Starting research", { subject, depth, timeoutMs });
+
+  const deadline = timeoutMs ? Date.now() + timeoutMs : Infinity;
 
   // Phase 1: Query expansion
   const queries = await expandQueries(subject, model, depth);
@@ -129,21 +132,30 @@ export async function research(
   const allData: string[] = [];
 
   for (const query of queries) {
+    if (Date.now() >= deadline) {
+      addLog("warn", "Research time budget exceeded, stopping search", {
+        completed: `${allData.length} sources`,
+      });
+      break;
+    }
+
     try {
-      const searchResults = await webSearch(query, 10);
+      const searchResults = await webSearch(query, 8);
       allData.push(`=== Search: ${query} ===\n${searchResults}`);
 
       const urls = extractUrls(searchResults);
-      const maxUrls = depth === "deep" ? 5 : 3;
+      const maxUrls = depth === "deep" ? 4 : 3;
 
-      for (const url of urls.slice(0, maxUrls)) {
-        try {
-          const content = await webFetch(url);
-          if (content && content.length > 50) {
-            allData.push(`=== Page: ${url} ===\n${content}`);
-          }
-        } catch {
-          // Continue with other URLs
+      const pageResults = await Promise.allSettled(
+        urls.slice(0, maxUrls).map(async (url) => ({
+          url,
+          content: await webFetch(url),
+        }))
+      );
+
+      for (const result of pageResults) {
+        if (result.status === "fulfilled" && result.value.content && result.value.content.length > 50) {
+          allData.push(`=== Page: ${result.value.url} ===\n${result.value.content}`);
         }
       }
     } catch (error) {
@@ -161,6 +173,7 @@ export async function research(
   addLog("info", "Research completed", {
     subject,
     reportLength: report.length,
+    timedOut: Date.now() >= deadline,
   });
   return report;
 }
