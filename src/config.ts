@@ -17,6 +17,8 @@ export const config = {
   serpapiApiKey: requireEnv("SERPAPI_API_KEY"),
   databasePath: process.env.DATABASE_PATH || "./data/bot.db",
   defaultModel: process.env.DEFAULT_MODEL || "openrouter/free",
+  searchTimeoutMs: parseInt(process.env.SEARCH_TIMEOUT_MS || "15000", 10),
+  llmTimeoutMs: parseInt(process.env.LLM_TIMEOUT_MS || "30000", 10),
 } as const;
 
 export const AVAILABLE_MODELS = [
@@ -36,3 +38,18 @@ export const FLUX_MODELS = {
 } as const;
 
 export const MAX_CONTEXT_PAIRS = 10;
+
+export const RESEARCH_TIMEOUT_MS = parseInt(
+  process.env.RESEARCH_TIMEOUT_MS || "120000",
+  10
+);
+
+export const SEARCH_TIMEOUT_MS = parseInt(
+  process.env.SEARCH_TIMEOUT_MS || "15000",
+  10
+);
+
+export const LLM_TIMEOUT_MS = parseInt(
+  process.env.LLM_TIMEOUT_MS || "30000",
+  10
+);

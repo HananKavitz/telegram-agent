@@ -11,11 +11,10 @@ import {
 } from "../services/storage.js";
 import { TOOLS } from "../tools.js";
 import type { ChatMessage, ToolCall } from "../types.js";
-import type { FLUX_MODELS } from "../config.js";
+import { RESEARCH_TIMEOUT_MS, type FLUX_MODELS } from "../config.js";
 
 const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
-const RESEARCH_TIMEOUT_MS = 80000;
 
 export async function handleChat(ctx: Context) {
   const userId = ctx.from?.id;

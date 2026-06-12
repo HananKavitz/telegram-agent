@@ -18,10 +18,19 @@ async function main() {
       console.log(`Health check server listening on 0.0.0.0:${PORT}`);
     });
 
-    bot.launch();
-    console.log("Bot is running...");
+    bot.catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Bot polling error:", msg);
+    });
+
+    bot.launch().then(() => {
+      console.log("Bot is running...");
+    });
+
+    console.log("Bot launching...");
   } catch (error) {
-    console.error("Failed to start bot:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Failed to start bot:", msg);
     process.exit(1);
   }
 }

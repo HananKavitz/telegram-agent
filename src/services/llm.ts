@@ -97,6 +97,7 @@ async function tryChatComplete(
         "X-Title": "Telegram Agent",
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(config.llmTimeoutMs),
     });
   } catch (fetchError) {
     const msg = fetchError instanceof Error ? fetchError.message : "Network error";
