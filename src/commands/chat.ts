@@ -16,13 +16,7 @@ import { RESEARCH_TIMEOUT_MS, type FLUX_MODELS } from "../config.js";
 const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
 
-export async function handleChat(ctx: Context) {
-  const userId = ctx.from?.id;
-  if (!userId) return;
-
-  const text = ctx.message && "text" in ctx.message ? ctx.message.text : "";
-  if (!text || text.startsWith("/")) return;
-
+export async function processUserText(ctx: Context, userId: number, text: string): Promise<void> {
   const model = getSelectedModel(userId);
 
   const statusMsg = await ctx.reply("💭 Thinking...");
@@ -186,4 +180,14 @@ export async function handleChat(ctx: Context) {
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
     await ctx.reply(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
+}
+
+export async function handleChat(ctx: Context) {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const text = ctx.message && "text" in ctx.message ? ctx.message.text : "";
+  if (!text || text.startsWith("/")) return;
+
+  await processUserText(ctx, userId, text);
 }

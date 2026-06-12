@@ -1,4 +1,5 @@
 import { Telegraf } from "telegraf";
+import { message } from "telegraf/filters";
 import { config } from "./config.js";
 import { startCommand } from "./commands/start.js";
 import { helpCommand } from "./commands/help.js";
@@ -9,6 +10,7 @@ import { searchCommand } from "./commands/search.js";
 import { debugCommand } from "./commands/debug.js";
 import { imageModelCommand, handleImageModelSelection } from "./commands/imagemodel.js";
 import { handleChat } from "./commands/chat.js";
+import { handleVoice } from "./commands/voice.js";
 
 const bot = new Telegraf(config.telegramBotToken);
 
@@ -26,6 +28,7 @@ bot.command("imagine", imagineCommand);
 bot.command("search", searchCommand);
 bot.command("debug", debugCommand);
 
+bot.on(message("voice"), handleVoice);
 bot.on("text", handleChat);
 
 export default bot;
