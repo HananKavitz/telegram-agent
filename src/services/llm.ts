@@ -238,6 +238,10 @@ export async function chatComplete(
 
   for (const fallbackModel of FALLBACK_MODELS) {
     if (triedModels.includes(fallbackModel)) continue;
+    if (isModelBlocked(fallbackModel)) {
+      addLog("info", `Skipping blocked fallback ${fallbackModel}`);
+      continue;
+    }
     triedModels.push(fallbackModel);
 
     try {
@@ -250,6 +254,9 @@ export async function chatComplete(
       return result.choice;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      if (lastError.message.includes("429") || (lastError as any).statusCode === 429) {
+        blockModel(fallbackModel);
+      }
       addLog("warn", `Fallback ${fallbackModel} exhausted`, {
         error: lastError.message,
       });
