@@ -10,8 +10,9 @@ import { searchCommand } from "./commands/search.js";
 import { debugCommand } from "./commands/debug.js";
 import { digestCommand } from "./commands/digest.js";
 import { imageModelCommand, handleImageModelSelection } from "./commands/imagemodel.js";
-import { handleChat } from "./commands/chat.js";
+import { handleChat, handlePhotoWithText } from "./commands/chat.js";
 import { handleVoice } from "./commands/voice.js";
+import { analyzeCommand } from "./commands/analyze.js";
 
 const bot = new Telegraf(config.telegramBotToken);
 
@@ -29,7 +30,9 @@ bot.command("imagine", imagineCommand);
 bot.command("search", searchCommand);
 bot.command("debug", debugCommand);
 bot.command("digest", digestCommand);
+bot.command("analyze", analyzeCommand);
 
+bot.on(message("photo"), handlePhotoWithText);
 bot.on(message("voice"), handleVoice);
 bot.on("text", handleChat);
 

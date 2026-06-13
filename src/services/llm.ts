@@ -32,21 +32,8 @@ interface OpenRouterResponse {
   error?: OpenRouterError;
 }
 
-interface ChatMessage {
-  role: "user" | "assistant" | "system" | "tool";
-  content?: string | null;
-  tool_call_id?: string;
-  tool_calls?: ToolCall[];
-}
-
-interface ToolDefinition {
-  type: "function";
-  function: {
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
-  };
-}
+type ChatMessage = import("../types.js").ChatMessage;
+type ToolDefinition = import("../types.js").ToolDefinition;
 
 const FALLBACK_MODELS = [
   "openrouter/free",

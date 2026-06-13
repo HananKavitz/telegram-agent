@@ -10,8 +10,15 @@ import {
   getSelectedImageModel,
 } from "../services/storage.js";
 import { TOOLS } from "../tools.js";
-import type { ChatMessage, ToolCall } from "../types.js";
+import type { ChatMessage, ContentPart, ToolCall } from "../types.js";
 import { RESEARCH_TIMEOUT_MS, type FLUX_MODELS } from "../config.js";
+import {
+  VISION_MODEL,
+  downloadTelegramFile,
+  prepareImageContent,
+  getMimeType,
+  VISION_SYSTEM_PROMPT,
+} from "../services/vision.js";
 
 const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
@@ -179,6 +186,53 @@ export async function processUserText(ctx: Context, userId: number, text: string
   } catch (error) {
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
     await ctx.reply(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+export async function handlePhotoWithText(ctx: Context) {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const photo = ctx.message && "photo" in ctx.message ? ctx.message.photo : null;
+  if (!photo || photo.length === 0) return;
+
+  const caption = (ctx.message && "caption" in ctx.message ? ctx.message.caption : "") || "";
+  const largest = photo[photo.length - 1];
+
+  const statusMsg = await ctx.reply("🔍 Analyzing image...");
+
+  try {
+    const fileLink = await ctx.telegram.getFileLink(largest.file_id);
+    const buffer = await downloadTelegramFile(fileLink.href);
+    const imageContent = await prepareImageContent(buffer, "image/jpeg");
+
+    const userText = caption || "Describe this image in detail.";
+    const history = await getMessages(userId);
+    const messages: ChatMessage[] = [
+      { role: "system", content: VISION_SYSTEM_PROMPT },
+      ...(history as ChatMessage[]),
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userText } as ContentPart,
+          imageContent,
+        ] as ContentPart[],
+      },
+    ];
+
+    const response = await chatComplete(VISION_MODEL, messages);
+    const replyText = response.message.content?.trim() || "I couldn't analyze that image.";
+
+    await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
+    await ctx.reply(replyText);
+
+    const captionPreview = caption.length > 80 ? caption.slice(0, 80) + "..." : (caption || "[no caption]");
+    await addMessage(userId, "user", `[Attached image] ${captionPreview}`);
+    await addMessage(userId, "assistant", replyText);
+  } catch (error) {
+    await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    await ctx.reply(`Image analysis failed: ${msg}`);
   }
 }
 
