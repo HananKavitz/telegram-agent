@@ -3,6 +3,10 @@ import { getLogs, getLastError } from "../services/debug.js";
 import { getSelectedModel, getTotalMessageCount, getDatabaseUrl } from "../services/storage.js";
 import { config, AVAILABLE_MODELS } from "../config.js";
 
+function esc(text: string): string {
+  return text.replace(/[_*[`]/g, "\\$&");
+}
+
 export async function debugCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
@@ -19,14 +23,14 @@ export async function debugCommand(ctx: Context) {
   msg += `*Status:* Running\n`;
   msg += `*Database:* ${dbType}\n`;
   msg += `*Total Messages Stored:* ${totalMessages}\n`;
-  msg += `*Selected Model:* \`${modelName}\`\n`;
-  msg += `*Model Slug:* \`${model}\`\n`;
-  msg += `*Default Model:* \`${config.defaultModel}\`\n\n`;
+  msg += `*Selected Model:* \`${esc(modelName)}\`\n`;
+  msg += `*Model Slug:* \`${esc(model)}\`\n`;
+  msg += `*Default Model:* \`${esc(config.defaultModel)}\`\n\n`;
 
   if (lastError) {
-    msg += `*Last Error:*\n\`${lastError.message}\`\n`;
+    msg += `*Last Error:*\n${esc(lastError.message)}\n`;
     if (lastError.details) {
-      msg += `Details: \`${JSON.stringify(lastError.details).slice(0, 300)}\`\n`;
+      msg += `Details: ${esc(JSON.stringify(lastError.details).slice(0, 300))}\n`;
     }
     msg += `\n`;
   } else {
@@ -37,7 +41,7 @@ export async function debugCommand(ctx: Context) {
   for (const log of recentLogs.slice(-5)) {
     const icon = log.level === "error" ? "❌" : log.level === "warn" ? "⚠️" : "ℹ️";
     const time = log.timestamp.slice(11, 19);
-    msg += `${icon} \`${time}\` ${log.message}\n`;
+    msg += `${icon} \`${time}\` ${esc(log.message)}\n`;
   }
 
   msg += `\n*Tip:* Check bot-error.log for full error details.`;
