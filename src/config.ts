@@ -53,3 +53,13 @@ export const LLM_TIMEOUT_MS = parseInt(
   process.env.LLM_TIMEOUT_MS || "30000",
   10
 );
+
+export const DEFAULT_DIGEST_TOPICS = [
+  "AI trends and latest developments",
+  "latest in tech",
+  "US politics",
+  "stock market highlights",
+] as const;
+
+export const DIGEST_CHECK_INTERVAL_MS = 60_000;
+export const DEFAULT_DIGEST_TIME = "08:00";

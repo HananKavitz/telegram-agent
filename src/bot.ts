@@ -8,6 +8,7 @@ import { clearCommand } from "./commands/clear.js";
 import { imagineCommand } from "./commands/imagine.js";
 import { searchCommand } from "./commands/search.js";
 import { debugCommand } from "./commands/debug.js";
+import { digestCommand } from "./commands/digest.js";
 import { imageModelCommand, handleImageModelSelection } from "./commands/imagemodel.js";
 import { handleChat } from "./commands/chat.js";
 import { handleVoice } from "./commands/voice.js";
@@ -27,6 +28,7 @@ bot.command("clear", clearCommand);
 bot.command("imagine", imagineCommand);
 bot.command("search", searchCommand);
 bot.command("debug", debugCommand);
+bot.command("digest", digestCommand);
 
 bot.on(message("voice"), handleVoice);
 bot.on("text", handleChat);

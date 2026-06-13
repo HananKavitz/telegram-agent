@@ -17,6 +17,7 @@ I'm an AI assistant powered by multiple LLM models. I can:
 /search <query> - Search the web
 /clear - Reset conversation context
 /debug - Show debug info
+/digest - Daily digest of your topics
 
 Let's get started!`,
     { parse_mode: "Markdown" }

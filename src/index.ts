@@ -1,6 +1,7 @@
 import http from "http";
 import bot from "./bot.js";
 import { initDatabase } from "./services/storage.js";
+import { startDigestScheduler } from "./services/digest.js";
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
@@ -25,6 +26,7 @@ async function main() {
 
     bot.launch().then(() => {
       console.log("Bot is running...");
+      startDigestScheduler(bot);
     });
 
     console.log("Bot launching...");

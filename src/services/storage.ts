@@ -2,7 +2,7 @@ import initSqlJs from "sql.js";
 import type { Database as SqlJsDatabase } from "sql.js";
 import path from "path";
 import fs from "fs";
-import { config, MAX_CONTEXT_PAIRS } from "../config.js";
+import { config, MAX_CONTEXT_PAIRS, DEFAULT_DIGEST_TOPICS, DEFAULT_DIGEST_TIME } from "../config.js";
 
 let db: SqlJsDatabase;
 
@@ -48,6 +48,19 @@ image_model TEXT NOT NULL DEFAULT 'flux.2-klein-4b'
     db.run(`ALTER TABLE user_settings ADD COLUMN image_model TEXT NOT NULL DEFAULT 'flux.2-klein-4b'`);
   } catch {
     // column already exists
+  }
+
+  for (const col of [
+    `digest_enabled INTEGER NOT NULL DEFAULT 0`,
+    `digest_time TEXT NOT NULL DEFAULT '${DEFAULT_DIGEST_TIME}'`,
+    `digest_topics TEXT NOT NULL DEFAULT '${JSON.stringify([...DEFAULT_DIGEST_TOPICS])}'`,
+    `digest_last_sent TEXT`,
+  ]) {
+    try {
+      db.run(`ALTER TABLE user_settings ADD COLUMN ${col}`);
+    } catch {
+      // column already exists
+    }
   }
 
   saveDatabase();
@@ -135,4 +148,99 @@ export function setSelectedImageModel(userId: number, model: string) {
     [userId, model]
   );
   saveDatabase();
+}
+
+export interface DigestSettings {
+  enabled: boolean;
+  time: string;
+  topics: string[];
+  lastSent: string | null;
+}
+
+export function getDigestSettings(userId: number): DigestSettings {
+  const stmt = db.prepare(
+    `SELECT digest_enabled, digest_time, digest_topics, digest_last_sent FROM user_settings WHERE user_id = ?`
+  );
+  stmt.bind([userId]);
+
+  if (stmt.step()) {
+    const row = stmt.getAsObject() as {
+      digest_enabled: number;
+      digest_time: string;
+      digest_topics: string;
+      digest_last_sent: string | null;
+    };
+    stmt.free();
+    return {
+      enabled: row.digest_enabled === 1,
+      time: row.digest_time,
+      topics: JSON.parse(row.digest_topics),
+      lastSent: row.digest_last_sent,
+    };
+  }
+  stmt.free();
+  return {
+    enabled: false,
+    time: DEFAULT_DIGEST_TIME,
+    topics: [...DEFAULT_DIGEST_TOPICS],
+    lastSent: null,
+  };
+}
+
+export function setDigestTopics(userId: number, topics: string[]) {
+  const json = JSON.stringify(topics);
+  db.run(
+    `INSERT INTO user_settings (user_id, digest_topics) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET digest_topics = excluded.digest_topics`,
+    [userId, json]
+  );
+  saveDatabase();
+}
+
+export function setDigestTime(userId: number, time: string) {
+  db.run(
+    `INSERT INTO user_settings (user_id, digest_time) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET digest_time = excluded.digest_time`,
+    [userId, time]
+  );
+  saveDatabase();
+}
+
+export function setDigestEnabled(userId: number, enabled: boolean) {
+  db.run(
+    `INSERT INTO user_settings (user_id, digest_enabled) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET digest_enabled = excluded.digest_enabled`,
+    [userId, enabled ? 1 : 0]
+  );
+  saveDatabase();
+}
+
+export function setDigestLastSent(userId: number, date: string) {
+  db.run(
+    `INSERT INTO user_settings (user_id, digest_last_sent) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET digest_last_sent = excluded.digest_last_sent`,
+    [userId, date]
+  );
+  saveDatabase();
+}
+
+export function getAllDigestEnabledUsers(): { userId: number; time: string; lastSent: string | null }[] {
+  const stmt = db.prepare(
+    `SELECT user_id, digest_time, digest_last_sent FROM user_settings WHERE digest_enabled = 1`
+  );
+  const users: { userId: number; time: string; lastSent: string | null }[] = [];
+  while (stmt.step()) {
+    const row = stmt.getAsObject() as {
+      user_id: number;
+      digest_time: string;
+      digest_last_sent: string | null;
+    };
+    users.push({
+      userId: row.user_id,
+      time: row.digest_time,
+      lastSent: row.digest_last_sent,
+    });
+  }
+  stmt.free();
+  return users;
 }

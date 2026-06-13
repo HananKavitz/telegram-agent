@@ -18,6 +18,8 @@ export function helpCommand(ctx: Context) {
 
 */debug* - Shows bot status, current model, and recent error logs for troubleshooting
 
+*/digest* - Daily digest with AI-synthesized updates on your topics. \`/digest <topic1, topic2>\` to set topics and enable. \`/digest time HH:MM\` to set time (UTC). \`/digest now\` for preview. \`/digest off\` to disable.
+
 *Tips:*
 - You can also just chat normally — the bot will use your selected model
 - Ask the bot to "generate an image of..." and it will create one automatically
