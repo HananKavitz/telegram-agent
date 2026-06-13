@@ -13,7 +13,7 @@ export async function imageModelCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const currentModel = getSelectedImageModel(userId);
+  const currentModel = await getSelectedImageModel(userId);
 
   const buttons = FLUX_OPTIONS.map((m) =>
     Markup.button.callback(
@@ -51,12 +51,19 @@ export async function handleImageModelSelection(ctx: Context) {
   if (!userId) return;
 
   const modelKey = data.replace("imagemodel:", "");
-  setSelectedImageModel(userId, modelKey);
 
-  const modelName = FLUX_OPTIONS.find(m => m.key === modelKey)?.name || modelKey;
+  try {
+    await setSelectedImageModel(userId, modelKey);
 
-  await ctx.editMessageText(
-    `*Image Model Selected* ✅\n\nSwitched to: \`${modelName}\``,
-    { parse_mode: "Markdown" }
-  );
+    const modelName = FLUX_OPTIONS.find(m => m.key === modelKey)?.name || modelKey;
+
+    await ctx.editMessageText(
+      `*Image Model Selected* ✅\n\nSwitched to: \`${modelName}\``,
+      { parse_mode: "Markdown" }
+    );
+  } catch (error) {
+    await ctx.editMessageText(
+      `Failed to save image model selection: ${error instanceof Error ? error.message : "Unknown error"}`
+    ).catch(() => {});
+  }
 }

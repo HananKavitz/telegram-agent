@@ -17,7 +17,7 @@ export async function imagineCommand(ctx: Context) {
     return;
   }
 
-  const modelKey = getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
+  const modelKey = await getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
   const statusMsg = await ctx.reply(`🎨 Generating image: "${prompt}"...`);
 
   try {

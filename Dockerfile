@@ -21,8 +21,6 @@ COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
 
-VOLUME ["/app/data"]
-
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]

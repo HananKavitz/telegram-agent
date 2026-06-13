@@ -24,8 +24,8 @@ function currentHHMM(): string {
 }
 
 export async function generateDigest(userId: number): Promise<string> {
-  const settings = getDigestSettings(userId);
-  const model = getSelectedModel(userId) || "google/gemini-2.0-flash-001";
+  const settings = await getDigestSettings(userId);
+  const model = await getSelectedModel(userId) || "google/gemini-2.0-flash-001";
   const sections: string[] = [];
   const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -112,7 +112,7 @@ async function checkAndSendDigests() {
   try {
     const nowHHMM = currentHHMM();
     const today = todayDate();
-    const users = getAllDigestEnabledUsers();
+    const users = await getAllDigestEnabledUsers();
 
     for (const user of users) {
       if (user.time !== nowHHMM) continue;
@@ -124,7 +124,7 @@ async function checkAndSendDigests() {
           parse_mode: "Markdown",
           link_preview_options: { is_disabled: true },
         });
-        setDigestLastSent(user.userId, today);
+        await setDigestLastSent(user.userId, today);
         addLog("info", "Digest sent", { userId: user.userId });
       } catch (error) {
         addLog("error", "Digest delivery failed", {

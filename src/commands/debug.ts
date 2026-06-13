@@ -7,7 +7,7 @@ export async function debugCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const model = getSelectedModel(userId);
+  const model = await getSelectedModel(userId);
   const modelName = AVAILABLE_MODELS.find((m) => m.slug === model)?.name || model;
   const lastError = getLastError();
   const recentLogs = getLogs(undefined, 10);

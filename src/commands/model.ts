@@ -7,7 +7,7 @@ export async function modelCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const currentModel = getSelectedModel(userId);
+  const currentModel = await getSelectedModel(userId);
 
   const buttons = AVAILABLE_MODELS.map((m) =>
     Markup.button.callback(
@@ -45,12 +45,19 @@ export async function handleModelSelection(ctx: Context) {
   if (!userId) return;
 
   const modelSlug = data.replace("model:", "");
-  setSelectedModel(userId, modelSlug);
 
-  const modelName = AVAILABLE_MODELS.find((m) => m.slug === modelSlug)?.name || modelSlug;
+  try {
+    await setSelectedModel(userId, modelSlug);
 
-  await ctx.editMessageText(
-    `*Model Selected* ✅\n\nSwitched to: \`${modelName}\``,
-    { parse_mode: "Markdown" }
-  );
+    const modelName = AVAILABLE_MODELS.find((m) => m.slug === modelSlug)?.name || modelSlug;
+
+    await ctx.editMessageText(
+      `*Model Selected* ✅\n\nSwitched to: \`${modelName}\``,
+      { parse_mode: "Markdown" }
+    );
+  } catch (error) {
+    await ctx.editMessageText(
+      `Failed to save model selection: ${error instanceof Error ? error.message : "Unknown error"}`
+    ).catch(() => {});
+  }
 }

@@ -17,12 +17,12 @@ const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
 
 export async function processUserText(ctx: Context, userId: number, text: string): Promise<void> {
-  const model = getSelectedModel(userId);
+  const model = await getSelectedModel(userId);
 
   const statusMsg = await ctx.reply("💭 Thinking...");
 
   try {
-    const history = getMessages(userId);
+    const history = await getMessages(userId);
     const messages: ChatMessage[] = [
       {
         role: "system",
@@ -47,7 +47,7 @@ export async function processUserText(ctx: Context, userId: number, text: string
       { role: "user", content: text },
     ];
 
-    addMessage(userId, "user", text);
+    await addMessage(userId, "user", text);
 
     let toolRound = 0;
     let finalText = "";
@@ -79,7 +79,7 @@ export async function processUserText(ctx: Context, userId: number, text: string
       };
       messages.push(assistantMsg);
 
-      const imgModelKey = getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
+      const imgModelKey = await getSelectedImageModel(userId) as keyof typeof FLUX_MODELS;
 
       for (const toolCall of toolCalls) {
         const args = JSON.parse(toolCall.function.arguments);
@@ -88,7 +88,7 @@ export async function processUserText(ctx: Context, userId: number, text: string
           try {
             const imageBuffer = await generateImage(args.prompt, imgModelKey);
             await ctx.replyWithPhoto({ source: imageBuffer });
-            addMessage(userId, "assistant", `[Generated image: ${args.prompt}]`);
+            await addMessage(userId, "assistant", `[Generated image: ${args.prompt}]`);
             messages.push({
               role: "tool",
               content: `[Image generated: ${args.prompt}]`,
@@ -169,7 +169,7 @@ export async function processUserText(ctx: Context, userId: number, text: string
 
     if (finalText) {
       await ctx.reply(finalText);
-      addMessage(userId, "assistant", finalText);
+      await addMessage(userId, "assistant", finalText);
     }
 
     if (!finalText && toolRound === 0) {

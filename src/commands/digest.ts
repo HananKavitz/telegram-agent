@@ -18,7 +18,7 @@ export async function digestCommand(ctx: Context) {
   const text = ctx.message && "text" in ctx.message ? ctx.message.text.trim() : "";
 
   if (!text || text === "/digest") {
-    const settings = getDigestSettings(userId);
+    const settings = await getDigestSettings(userId);
     const topicsList = settings.topics.map((t: string) => `• ${t}`).join("\n");
     const status = settings.enabled ? "✅ *Enabled*" : "❌ *Disabled*";
     await ctx.reply(
@@ -40,14 +40,22 @@ export async function digestCommand(ctx: Context) {
   const sub = parts[1]?.toLowerCase();
 
   if (sub === "on") {
-    setDigestEnabled(userId, true);
-    await ctx.reply("✅ Daily digest enabled!");
+    try {
+      await setDigestEnabled(userId, true);
+      await ctx.reply("✅ Daily digest enabled!");
+    } catch (error) {
+      await ctx.reply(`Failed to enable digest: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
     return;
   }
 
   if (sub === "off") {
-    setDigestEnabled(userId, false);
-    await ctx.reply("❌ Daily digest disabled.");
+    try {
+      await setDigestEnabled(userId, false);
+      await ctx.reply("❌ Daily digest disabled.");
+    } catch (error) {
+      await ctx.reply(`Failed to disable digest: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
     return;
   }
 
@@ -69,8 +77,12 @@ export async function digestCommand(ctx: Context) {
       await ctx.reply("Invalid time format. Use HH:MM (UTC), e.g. \`/digest time 07:00\`", { parse_mode: "Markdown" });
       return;
     }
-    setDigestTime(userId, parsed);
-    await ctx.reply(`⏰ Digest delivery time set to \`${parsed}\` UTC.`, { parse_mode: "Markdown" });
+    try {
+      await setDigestTime(userId, parsed);
+      await ctx.reply(`⏰ Digest delivery time set to \`${parsed}\` UTC.`, { parse_mode: "Markdown" });
+    } catch (error) {
+      await ctx.reply(`Failed to save digest time: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
     return;
   }
 
@@ -81,14 +93,18 @@ export async function digestCommand(ctx: Context) {
       await ctx.reply("Please provide at least one topic.");
       return;
     }
-    setDigestTopics(userId, topics);
-    setDigestEnabled(userId, true);
-    await ctx.reply(
-      `✅ Topics set and digest enabled!\n\n` +
-      `*Topics:* ${topics.join(", ")}\n` +
-      `Use \`/digest time HH:MM\` to set delivery time (default 08:00 UTC).\n` +
-      `Use \`/digest now\` for a preview.`,
-      { parse_mode: "Markdown" }
-    );
+    try {
+      await setDigestTopics(userId, topics);
+      await setDigestEnabled(userId, true);
+      await ctx.reply(
+        `✅ Topics set and digest enabled!\n\n` +
+        `*Topics:* ${topics.join(", ")}\n` +
+        `Use \`/digest time HH:MM\` to set delivery time (default 08:00 UTC).\n` +
+        `Use \`/digest now\` for a preview.`,
+        { parse_mode: "Markdown" }
+      );
+    } catch (error) {
+      await ctx.reply(`Failed to save digest settings: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 }
