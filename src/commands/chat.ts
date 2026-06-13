@@ -191,12 +191,16 @@ export async function processUserText(ctx: Context, userId: number, text: string
 }
 
 export async function handlePhotoWithText(ctx: Context) {
+  console.error("[VISION-DEBUG] handlePhotoWithText FIRED at", new Date().toISOString());
   const userId = ctx.from?.id;
+  console.error("[VISION-DEBUG] userId:", userId, "hasMessage:", !!ctx.message);
   addLog("info", "handlePhotoWithText entered", { userId, hasMessage: !!ctx.message });
   if (!userId) return;
 
+  const msgObj = ctx.message ? Object.keys(ctx.message).join(",") : "null";
   const hasPhoto = ctx.message && "photo" in ctx.message;
-  addLog("info", "Photo check", { hasPhoto, messageKeys: ctx.message ? Object.keys(ctx.message) : [] });
+  console.error("[VISION-DEBUG] hasPhoto:", hasPhoto, "keys:", msgObj);
+  addLog("info", "Photo check", { hasPhoto, messageKeys: msgObj });
 
   const photo = ctx.message && "photo" in ctx.message ? ctx.message.photo : null;
   if (!photo || photo.length === 0) {

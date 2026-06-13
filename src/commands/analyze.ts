@@ -31,7 +31,9 @@ function getPhotoFromReply(ctx: Context): { fileId: string; mimeType: string } |
 }
 
 export async function analyzeCommand(ctx: Context) {
+  console.error("[VISION-DEBUG] /analyze command FIRED at", new Date().toISOString());
   const userId = ctx.from?.id;
+  console.error("[VISION-DEBUG] userId:", userId);
   addLog("info", "/analyze command entered", { userId, text: ctx.message && "text" in ctx.message ? ctx.message.text : "" });
   if (!userId) return;
 
