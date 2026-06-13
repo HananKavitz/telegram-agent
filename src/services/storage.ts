@@ -1,10 +1,19 @@
 import { createClient } from "@libsql/client";
 import type { Client } from "@libsql/client";
 import { config, MAX_CONTEXT_PAIRS, DEFAULT_DIGEST_TOPICS, DEFAULT_DIGEST_TIME } from "../config.js";
+import fs from "fs";
+import path from "path";
 
 let turso: Client;
 
 export async function initDatabase(): Promise<void> {
+  const isFileDb = config.tursoUrl.startsWith("file:");
+  if (isFileDb) {
+    const dbPath = config.tursoUrl.replace("file:", "");
+    const dir = path.dirname(dbPath);
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
   turso = createClient({
     url: config.tursoUrl,
     authToken: config.tursoAuthToken || undefined,
