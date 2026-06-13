@@ -200,6 +200,16 @@ export async function setDigestLastSent(userId: number, date: string) {
   });
 }
 
+export async function getTotalMessageCount(): Promise<number> {
+  const result = await turso.execute({ sql: `SELECT COUNT(*) as cnt FROM conversations`, args: [] });
+  const row = result.rows[0] as unknown as { cnt: number };
+  return row.cnt;
+}
+
+export async function getDatabaseUrl(): Promise<string> {
+  return config.tursoUrl;
+}
+
 export async function getAllDigestEnabledUsers(): Promise<{ userId: number; time: string; lastSent: string | null }[]> {
   const result = await turso.execute({
     sql: `SELECT user_id, digest_time, digest_last_sent FROM user_settings WHERE digest_enabled = 1`,

@@ -1,6 +1,6 @@
 import type { Context } from "telegraf";
 import { getLogs, getLastError } from "../services/debug.js";
-import { getSelectedModel } from "../services/storage.js";
+import { getSelectedModel, getTotalMessageCount, getDatabaseUrl } from "../services/storage.js";
 import { config, AVAILABLE_MODELS } from "../config.js";
 
 export async function debugCommand(ctx: Context) {
@@ -11,9 +11,14 @@ export async function debugCommand(ctx: Context) {
   const modelName = AVAILABLE_MODELS.find((m) => m.slug === model)?.name || model;
   const lastError = getLastError();
   const recentLogs = getLogs(undefined, 10);
+  const totalMessages = await getTotalMessageCount();
+  const dbUrl = await getDatabaseUrl();
+  const dbType = dbUrl.startsWith("libsql://") || dbUrl.startsWith("https://") ? "Turso (remote)" : "SQLite (local)";
 
   let msg = `*Bot Debug Info*\n\n`;
   msg += `*Status:* Running\n`;
+  msg += `*Database:* ${dbType}\n`;
+  msg += `*Total Messages Stored:* ${totalMessages}\n`;
   msg += `*Selected Model:* \`${modelName}\`\n`;
   msg += `*Model Slug:* \`${model}\`\n`;
   msg += `*Default Model:* \`${config.defaultModel}\`\n\n`;
