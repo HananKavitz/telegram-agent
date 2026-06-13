@@ -17,9 +17,11 @@ export function getMimeType(format: string): string {
 export async function prepareImageContent(buffer: Buffer, mimeType: string): Promise<ContentPart> {
   addLog("info", "Preparing image for vision", { mimeType, size: buffer.length });
   const base64 = buffer.toString("base64");
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+  addLog("info", "Image encoded", { base64Length: base64.length, dataUrlPrefix: dataUrl.slice(0, 60) + "..." });
   return {
     type: "image_url",
-    image_url: { url: `data:${mimeType};base64,${base64}` },
+    image_url: { url: dataUrl },
   };
 }
 

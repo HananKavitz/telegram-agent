@@ -3,6 +3,7 @@ import { chatComplete } from "../services/llm.js";
 import { VISION_MODEL, downloadTelegramFile, prepareImageContent, getMimeType, VISION_SYSTEM_PROMPT } from "../services/vision.js";
 import { addMessage, getMessages } from "../services/storage.js";
 import type { ChatMessage, ContentPart } from "../types.js";
+import { addLog } from "../services/debug.js";
 
 function getCommandText(ctx: Context): string {
   const text = ctx.message && "text" in ctx.message ? ctx.message.text : "";
@@ -31,9 +32,13 @@ function getPhotoFromReply(ctx: Context): { fileId: string; mimeType: string } |
 
 export async function analyzeCommand(ctx: Context) {
   const userId = ctx.from?.id;
+  addLog("info", "/analyze command entered", { userId, text: ctx.message && "text" in ctx.message ? ctx.message.text : "" });
   if (!userId) return;
 
-  const photo = getPhotoFromMessage(ctx) || getPhotoFromReply(ctx);
+  const directPhoto = getPhotoFromMessage(ctx);
+  const replyPhoto = getPhotoFromReply(ctx);
+  const photo = directPhoto || replyPhoto;
+  addLog("info", "Photo source", { hasDirectPhoto: !!directPhoto, hasReplyPhoto: !!replyPhoto });
 
   if (!photo) {
     await ctx.reply(
@@ -46,14 +51,22 @@ export async function analyzeCommand(ctx: Context) {
   }
 
   const userQuestion = getCommandText(ctx) || "Describe this image in detail.";
+  addLog("info", "Analyzing image", { fileId: photo.fileId, question: userQuestion.slice(0, 100) });
   const statusMsg = await ctx.reply("🔍 Analyzing image...");
 
   try {
+    addLog("info", "Getting file link");
     const fileLink = await ctx.telegram.getFileLink(photo.fileId);
+    addLog("info", "File link obtained", { url: fileLink.href.slice(0, 80) });
+
     const buffer = await downloadTelegramFile(fileLink.href);
+    addLog("info", "File downloaded", { size: buffer.length });
+
     const imageContent = await prepareImageContent(buffer, photo.mimeType);
 
     const history = await getMessages(userId);
+    addLog("info", "Building messages", { historyLen: history.length });
+
     const messages: ChatMessage[] = [
       { role: "system", content: VISION_SYSTEM_PROMPT },
       ...(history as ChatMessage[]),
@@ -66,7 +79,10 @@ export async function analyzeCommand(ctx: Context) {
       },
     ];
 
+    addLog("info", "Calling vision model", { model: VISION_MODEL });
     const response = await chatComplete(VISION_MODEL, messages);
+    addLog("info", "Vision response received", { finishReason: response.finish_reason });
+
     const replyText = response.message.content?.trim() || "I couldn't analyze that image.";
 
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
@@ -75,9 +91,11 @@ export async function analyzeCommand(ctx: Context) {
     const captionPreview = userQuestion.length > 80 ? userQuestion.slice(0, 80) + "..." : userQuestion;
     await addMessage(userId, "user", `[Analyzed image] ${captionPreview}`);
     await addMessage(userId, "assistant", replyText);
+    addLog("info", "/analyze complete", { replyLength: replyText.length });
   } catch (error) {
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
     const msg = error instanceof Error ? error.message : "Unknown error";
+    addLog("error", "/analyze failed", { error: msg, stack: error instanceof Error ? error.stack?.slice(0, 300) : undefined });
     await ctx.reply(`Image analysis failed: ${msg}`);
   }
 }

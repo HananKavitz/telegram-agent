@@ -19,6 +19,7 @@ import {
   getMimeType,
   VISION_SYSTEM_PROMPT,
 } from "../services/vision.js";
+import { addLog } from "../services/debug.js";
 
 const MAX_TOOL_ROUNDS = 3;
 const TYPING_INTERVAL_MS = 4000;
@@ -191,23 +192,38 @@ export async function processUserText(ctx: Context, userId: number, text: string
 
 export async function handlePhotoWithText(ctx: Context) {
   const userId = ctx.from?.id;
+  addLog("info", "handlePhotoWithText entered", { userId, hasMessage: !!ctx.message });
   if (!userId) return;
 
+  const hasPhoto = ctx.message && "photo" in ctx.message;
+  addLog("info", "Photo check", { hasPhoto, messageKeys: ctx.message ? Object.keys(ctx.message) : [] });
+
   const photo = ctx.message && "photo" in ctx.message ? ctx.message.photo : null;
-  if (!photo || photo.length === 0) return;
+  if (!photo || photo.length === 0) {
+    addLog("warn", "No photo found in message");
+    return;
+  }
 
   const caption = (ctx.message && "caption" in ctx.message ? ctx.message.caption : "") || "";
   const largest = photo[photo.length - 1];
+  addLog("info", "Photo received", { fileId: largest.file_id, caption: caption.slice(0, 100), photoSizes: photo.length });
 
   const statusMsg = await ctx.reply("🔍 Analyzing image...");
 
   try {
+    addLog("info", "Getting file link from Telegram");
     const fileLink = await ctx.telegram.getFileLink(largest.file_id);
+    addLog("info", "File link obtained", { url: fileLink.href.slice(0, 80) });
+
     const buffer = await downloadTelegramFile(fileLink.href);
+    addLog("info", "File downloaded", { size: buffer.length });
+
     const imageContent = await prepareImageContent(buffer, "image/jpeg");
 
     const userText = caption || "Describe this image in detail.";
     const history = await getMessages(userId);
+    addLog("info", "Building vision messages", { historyLen: history.length, userText });
+
     const messages: ChatMessage[] = [
       { role: "system", content: VISION_SYSTEM_PROMPT },
       ...(history as ChatMessage[]),
@@ -220,7 +236,10 @@ export async function handlePhotoWithText(ctx: Context) {
       },
     ];
 
+    addLog("info", "Calling vision model", { model: VISION_MODEL });
     const response = await chatComplete(VISION_MODEL, messages);
+    addLog("info", "Vision response received", { finishReason: response.finish_reason, hasContent: !!response.message.content });
+
     const replyText = response.message.content?.trim() || "I couldn't analyze that image.";
 
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
@@ -229,9 +248,11 @@ export async function handlePhotoWithText(ctx: Context) {
     const captionPreview = caption.length > 80 ? caption.slice(0, 80) + "..." : (caption || "[no caption]");
     await addMessage(userId, "user", `[Attached image] ${captionPreview}`);
     await addMessage(userId, "assistant", replyText);
+    addLog("info", "Photo analysis complete", { replyLength: replyText.length });
   } catch (error) {
     await ctx.deleteMessage(statusMsg.message_id).catch(() => {});
     const msg = error instanceof Error ? error.message : "Unknown error";
+    addLog("error", "Photo analysis failed", { error: msg, stack: error instanceof Error ? error.stack?.slice(0, 300) : undefined });
     await ctx.reply(`Image analysis failed: ${msg}`);
   }
 }
