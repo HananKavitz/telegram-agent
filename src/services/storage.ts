@@ -1,19 +1,10 @@
 import { createClient } from "@libsql/client";
 import type { Client } from "@libsql/client";
 import { config, MAX_CONTEXT_PAIRS, DEFAULT_DIGEST_TOPICS, DEFAULT_DIGEST_TIME } from "../config.js";
-import fs from "fs";
-import path from "path";
 
 let turso: Client;
 
 export async function initDatabase(): Promise<void> {
-  const isFileDb = config.tursoUrl.startsWith("file:");
-  if (isFileDb) {
-    const dbPath = config.tursoUrl.replace("file:", "");
-    const dir = path.dirname(dbPath);
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
   turso = createClient({
     url: config.tursoUrl,
     authToken: config.tursoAuthToken || undefined,
@@ -204,10 +195,6 @@ export async function getTotalMessageCount(): Promise<number> {
   const result = await turso.execute({ sql: `SELECT COUNT(*) as cnt FROM conversations`, args: [] });
   const row = result.rows[0] as unknown as { cnt: number };
   return row.cnt;
-}
-
-export async function getDatabaseUrl(): Promise<string> {
-  return config.tursoUrl;
 }
 
 export async function getAllDigestEnabledUsers(): Promise<{ userId: number; time: string; lastSent: string | null }[]> {

@@ -15,7 +15,7 @@ export const config = {
   telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
   openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
   serpapiApiKey: requireEnv("SERPAPI_API_KEY"),
-  tursoUrl: process.env.TURSO_DATABASE_URL || "file:./data/bot.db",
+  tursoUrl: requireEnv("TURSO_DATABASE_URL"),
   tursoAuthToken: process.env.TURSO_AUTH_TOKEN || "",
   defaultModel: process.env.DEFAULT_MODEL || "openrouter/free",
   searchTimeoutMs: parseInt(process.env.SEARCH_TIMEOUT_MS || "15000", 10),
