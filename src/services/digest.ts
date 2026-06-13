@@ -11,6 +11,8 @@ import { addLog } from "./debug.js";
 import type { ChatMessage } from "../types.js";
 import type { Telegraf } from "telegraf";
 
+const MAX_DIGEST_LENGTH = 3800;
+
 function todayDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -48,7 +50,7 @@ export async function generateDigest(userId: number): Promise<string> {
           content:
             "You are a news curator. Given a topic and raw search results, produce a digest entry. " +
             "For each result, write a short headline followed by 1-2 sentences explaining what is new or why it matters. " +
-            "Keep it factual and concise.\n\n" +
+            "Keep it factual and concise. Each entry MUST be under 300 characters total.\n\n" +
             "Format each entry EXACTLY as:\n" +
             " {emoji} Headline — 1-2 sentence explanation\n" +
             "  → URL\n\n" +
@@ -73,13 +75,31 @@ export async function generateDigest(userId: number): Promise<string> {
     return "No digest content could be generated. Try different topics.";
   }
 
-  return (
-    `📬 *Daily Digest — ${dateStr}*\n` +
-    `━━━━━━━━━━━━━━━━━━\n\n` +
-    sections.join("\n\n") +
-    `\n━━━━━━━━━━━━━━━━━━\n` +
-    `/digest to manage · /digest off to disable`
-  );
+  const header = `📬 *Daily Digest — ${dateStr}*\n━━━━━━━━━━━━━━━━━━\n\n`;
+  const footer = `\n━━━━━━━━━━━━━━━━━━\n/digest to manage · /digest off to disable`;
+
+  let body = sections.join("\n\n");
+  let full = header + body + footer;
+
+  if (full.length > MAX_DIGEST_LENGTH) {
+    const available = MAX_DIGEST_LENGTH - header.length - footer.length - 100;
+    let truncated = "";
+    for (const section of sections) {
+      const candidate = truncated ? truncated + "\n\n" + section : section;
+      if (candidate.length + header.length + footer.length + 100 > MAX_DIGEST_LENGTH) {
+        const room = available - truncated.length;
+        if (room > 80) {
+          truncated += (truncated ? "\n\n" : "") + section.slice(0, room) + "\n… *(truncated)*";
+        }
+        break;
+      }
+      truncated = candidate;
+    }
+    body = truncated;
+    full = header + body + footer;
+  }
+
+  return full;
 }
 
 let schedulerTimer: ReturnType<typeof setInterval> | null = null;
